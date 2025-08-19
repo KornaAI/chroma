@@ -378,7 +378,7 @@ impl FrontendServer {
         headers: &HeaderMap,
         action: AuthzAction,
         resource: AuthzResource,
-    ) -> Result<(), ServerError> {
+    ) -> Result<GetUserIdentityResponse, ServerError> {
         Ok(self
             .auth
             .authenticate_and_authorize(headers, action, resource)
@@ -393,7 +393,7 @@ impl FrontendServer {
         action: AuthzAction,
         resource: AuthzResource,
         collection_id: CollectionUuid,
-    ) -> Result<(), ServerError> {
+    ) -> Result<GetUserIdentityResponse, ServerError> {
         let collection = self.frontend.get_cached_collection(collection_id).await?;
         Ok(self
             .auth
@@ -1840,7 +1840,7 @@ async fn collection_count(
         database = database,
         collection_id = collection_id
     );
-    server
+    let authorized = server
         .authenticate_and_authorize_collection(
             &headers,
             AuthzAction::Count,
@@ -1856,6 +1856,7 @@ async fn collection_count(
         "op:read",
         format!("tenant:{}", tenant).as_str(),
         format!("collection:{}", collection_id).as_str(),
+        format!("requester:{}", authorized.tenant).as_str(),
     ])?;
 
     // Create a metering context
@@ -1923,7 +1924,7 @@ async fn collection_get(
             KeyValue::new("collection_id", collection_id.clone()),
         ],
     );
-    server
+    let authorized = server
         .authenticate_and_authorize_collection(
             &headers,
             AuthzAction::Get,
@@ -1964,6 +1965,7 @@ async fn collection_get(
         "op:read",
         format!("tenant:{}", tenant).as_str(),
         format!("collection:{}", collection_id).as_str(),
+        format!("requester:{}", authorized.tenant).as_str(),
     ])?;
 
     // Create a metering context
@@ -2051,7 +2053,7 @@ async fn collection_query(
             KeyValue::new("collection_id", collection_id.clone()),
         ],
     );
-    server
+    let authorized = server
         .authenticate_and_authorize_collection(
             &headers,
             AuthzAction::Query,
@@ -2089,6 +2091,7 @@ async fn collection_query(
         "op:read",
         format!("tenant:{}", tenant).as_str(),
         format!("collection:{}", collection_id).as_str(),
+        format!("requester:{}", authorized.tenant).as_str(),
     ])?;
 
     // Create a metering context
@@ -2179,6 +2182,7 @@ impl Modify for ChromaTokenSecurityAddon {
         list_collections,
         count_collections,
         get_collection,
+        get_collection_by_crn,
         update_collection,
         delete_collection,
         fork_collection,
